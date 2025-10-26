@@ -1,5 +1,6 @@
 package com.example.escolafutebolapp.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -25,6 +26,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.escolafutebolapp.models.Evento
 import com.example.escolafutebolapp.viewmodel.AgendaViewModel
+import java.text.SimpleDateFormat
+import java.util.*
 
 // 🎨 Cores do tema Dark
 private val DarkBackground = Color(0xFF0D0D0D)
@@ -34,6 +37,29 @@ private val RedSecondary = Color(0xFFCC3333)
 private val WhiteText = Color(0xFFFFFFFF)
 private val GrayText = Color(0xFFB3B3B3)
 private val DarkCard = Color(0xFF262626)
+
+// 🎨 Paleta de cores diversificada para os gradientes
+private val BlueGradient = listOf(Color(0xFF1E3A8A), Color(0xFF3B82F6))
+private val GreenGradient = listOf(Color(0xFF059669), Color(0xFF10B981))
+private val PurpleGradient = listOf(Color(0xFF7C3AED), Color(0xFF8B5CF6))
+private val OrangeGradient = listOf(Color(0xFFEA580C), Color(0xFFFB923C))
+private val TealGradient = listOf(Color(0xFF0D9488), Color(0xFF14B8A6))
+private val PinkGradient = listOf(Color(0xFFBE185D), Color(0xFFEC4899))
+private val IndigoGradient = listOf(Color(0xFF3730A3), Color(0xFF6366F1))
+private val YellowGradient = listOf(Color(0xFFD97706), Color(0xFFFBBF24))
+
+// ✅ Badge passado usa cinza escuro
+private val DarkGrayGradient = listOf(Color(0xFF374151), Color(0xFF4B5563))
+
+// Mapeamento de tipos de evento para gradientes (SEM VERMELHO)
+private val tipoEventoGradientes = mapOf(
+    "Treino" to BlueGradient,
+    "Jogo" to OrangeGradient,  // ✅ Mudou de vermelho para laranja
+    "Reunião" to GreenGradient,
+    "Evento Social" to PurpleGradient,
+    "Amistoso" to TealGradient,
+    "Outro" to IndigoGradient
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -223,11 +249,6 @@ fun AgendaScreen(
 }
 
 @Composable
-fun DialogConfirmarExclusao(onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    TODO("Not yet implemented")
-}
-
-@Composable
 private fun EstadoVazio() {
     Column(
         modifier = Modifier
@@ -239,7 +260,12 @@ private fun EstadoVazio() {
         Box(
             modifier = Modifier
                 .size(120.dp)
-                .background(DarkCard, RoundedCornerShape(60.dp)),
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(RedPrimary.copy(alpha = 0.3f), DarkCard)
+                    ),
+                    RoundedCornerShape(60.dp)
+                ),
             contentAlignment = Alignment.Center
         ) {
             Text(text = "📅", fontSize = 64.sp)
@@ -269,106 +295,200 @@ private fun CardEvento(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val alpha = if (isPassado) 0.5f else 1f
+    val alpha = if (isPassado) 0.6f else 1f
 
-    Card(
+    // Obtém o gradiente baseado no tipo de evento (SEM VERMELHO)
+    val gradientColors = tipoEventoGradientes[evento.tipoEvento]
+        ?: when (evento.id.hashCode() % 8) {
+            0 -> BlueGradient
+            1 -> GreenGradient
+            2 -> PurpleGradient
+            3 -> OrangeGradient
+            4 -> TealGradient
+            5 -> PinkGradient
+            6 -> YellowGradient
+            else -> IndigoGradient
+        }
+
+    // Aplica alpha nas cores do gradiente
+    val gradientColorsWithAlpha = gradientColors.map { it.copy(alpha = alpha) }
+    val cardGradient = Brush.linearGradient(colors = gradientColorsWithAlpha)
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(12.dp, RoundedCornerShape(20.dp)),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = DarkCard.copy(alpha = alpha)
-        )
+            .shadow(
+                elevation = 16.dp,
+                shape = RoundedCornerShape(20.dp),
+                spotColor = gradientColors.first().copy(alpha = 0.3f)
+            )
+            .background(cardGradient, RoundedCornerShape(20.dp))
+            .padding(20.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Header com ícone e título
+            // Header com badge de status
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(RedPrimary.copy(alpha = 0.2f), RoundedCornerShape(10.dp)),
-                    contentAlignment = Alignment.Center
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text(
-                        text = evento.getIconePorTipo(),
-                        fontSize = 20.sp
-                    )
-                }
-
-                Column {
-                    Text(
-                        text = evento.tipoEvento,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = WhiteText
-                    )
-                    if (isPassado) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(10.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            text = "Evento Passado",
+                            text = evento.getIconePorTipo(),
+                            fontSize = 20.sp
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = evento.tipoEvento,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = WhiteText
+                        )
+                        Text(
+                            text = evento.dataEvento,
                             style = MaterialTheme.typography.bodySmall,
-                            color = GrayText
+                            color = WhiteText.copy(alpha = 0.8f)
                         )
                     }
                 }
+
+                // ✅ Badge de status com cores diferentes
+                Box(
+                    modifier = Modifier
+                        .background(
+                            brush = if (isPassado)
+                                Brush.horizontalGradient(DarkGrayGradient) // ✅ Cinza escuro
+                            else
+                                Brush.horizontalGradient(GreenGradient), // ✅ Verde
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                ) {
+                    Text(
+                        text = if (isPassado) "PASSADO" else "PRÓXIMO",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = WhiteText,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp
+                    )
+                }
             }
 
-            Divider(color = GrayText.copy(alpha = 0.3f), thickness = 1.dp)
+            Divider(color = WhiteText.copy(alpha = 0.2f), thickness = 1.dp)
 
-            // Informações
-            InfoRow(Icons.Default.DateRange, "Data", evento.dataEvento)
-            InfoRow(Icons.Default.Schedule, "Horário", evento.horario)
-            if (evento.local.isNotBlank()) {
-                InfoRow(Icons.Default.LocationOn, "Local", evento.local)
+            // Informações principais
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                InfoRow(Icons.Default.Schedule, "Horário", evento.horario)
+                if (evento.local.isNotBlank()) {
+                    InfoRow(Icons.Default.LocationOn, "Local", evento.local)
+                }
             }
 
+            // Descrição (se houver)
             if (evento.descricao.isNotBlank()) {
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = evento.descricao,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = GrayText,
-                    maxLines = 3,
+                    color = WhiteText.copy(alpha = 0.9f),
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
             }
 
             Spacer(Modifier.height(8.dp))
 
-            // Botões
+            // ✅ Botões de ação corrigidos
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // Botão Editar - Azul
                 OutlinedButton(
                     onClick = onEdit,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = WhiteText
-                    )
+                        contentColor = WhiteText,
+                        containerColor = Color.Transparent
+                    ),
+                    border = BorderStroke(
+                        width = 2.dp,
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                Color(0xFF3B82F6).copy(alpha = 0.6f),
+                                Color(0xFF60A5FA).copy(alpha = 0.8f)
+                            )
+                        )
+                    ),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.Default.Edit, "Editar", modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Editar")
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = "Editar",
+                        modifier = Modifier.size(20.dp),
+                        tint = Color(0xFF60A5FA)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "Editar",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
                 }
 
+                // Botão Excluir - Vermelho
                 Button(
                     onClick = onDelete,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = RoundedCornerShape(12.dp),
+                            spotColor = RedSecondary
+                        )
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(RedSecondary, RedPrimary)
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = RedSecondary
-                    )
+                        containerColor = Color.Transparent
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(0.dp)
                 ) {
-                    Icon(Icons.Default.Delete, "Excluir", modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Excluir")
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Excluir",
+                        modifier = Modifier.size(20.dp),
+                        tint = Color(0xFFFEF2F2)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "Excluir",
+                        color = WhiteText,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
                 }
             }
         }
@@ -377,6 +497,13 @@ private fun CardEvento(
 
 @Composable
 private fun InfoRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String) {
+    // Define cor baseada no tipo de ícone
+    val iconColor = when (icon) {
+        Icons.Default.Schedule -> Color(0xFFFB923C) // Laranja
+        Icons.Default.LocationOn -> Color(0xFF10B981) // Verde
+        else -> WhiteText.copy(alpha = 0.8f)
+    }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -384,19 +511,20 @@ private fun InfoRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = RedPrimary,
-            modifier = Modifier.size(20.dp)
+            tint = iconColor,
+            modifier = Modifier.size(18.dp)
         )
         Text(
             text = "$label:",
             style = MaterialTheme.typography.bodyMedium,
-            color = GrayText,
+            color = WhiteText.copy(alpha = 0.8f),
             fontWeight = FontWeight.SemiBold
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
-            color = WhiteText
+            color = WhiteText,
+            fontWeight = FontWeight.Medium
         )
     }
 }
@@ -409,11 +537,8 @@ private fun DialogEvento(
     onSave: (Evento) -> Unit
 ) {
     var tipoEvento by remember { mutableStateOf(evento?.tipoEvento ?: "Treino") }
-
-    // ✅ VARIÁVEIS MANUAIS para data e horário
     var dataText by remember { mutableStateOf(evento?.dataEvento ?: "") }
     var horarioText by remember { mutableStateOf(evento?.horario ?: "") }
-
     var local by remember { mutableStateOf(evento?.local ?: "") }
     var descricao by remember { mutableStateOf(evento?.descricao ?: "") }
     var expanded by remember { mutableStateOf(false) }
@@ -434,7 +559,6 @@ private fun DialogEvento(
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Dropdown de tipo
                 ExposedDropdownMenuBox(
                     expanded = expanded,
                     onExpandedChange = { expanded = !expanded }
@@ -445,15 +569,9 @@ private fun DialogEvento(
                         readOnly = true,
                         label = { Text("Tipo de Evento", color = GrayText) },
                         trailingIcon = {
-                            Icon(
-                                Icons.Default.ArrowDropDown,
-                                "Dropdown",
-                                tint = RedPrimary
-                            )
+                            Icon(Icons.Default.ArrowDropDown, "Dropdown", tint = RedPrimary)
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(),
+                        modifier = Modifier.fillMaxWidth().menuAnchor(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = WhiteText,
                             unfocusedTextColor = WhiteText,
@@ -479,17 +597,12 @@ private fun DialogEvento(
                     }
                 }
 
-                // ✅ CAMPO DATA COM FORMATAÇÃO MANUAL
                 OutlinedTextField(
                     value = dataText,
-                    onValueChange = { newValue ->
-                        dataText = formatarDataManual(newValue)
-                    },
+                    onValueChange = { dataText = formatarDataManual(it) },
                     label = { Text("Data (DD/MM/AAAA)", color = GrayText) },
-                    placeholder = { Text("31/12/2024") },
-                    leadingIcon = {
-                        Icon(Icons.Default.DateRange, "Data", tint = RedPrimary)
-                    },
+                    placeholder = { Text("31/12/2024", color = GrayText.copy(0.5f)) },
+                    leadingIcon = { Icon(Icons.Default.DateRange, "Data", tint = RedPrimary) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -500,17 +613,12 @@ private fun DialogEvento(
                     )
                 )
 
-                // ✅ CAMPO HORÁRIO COM FORMATAÇÃO MANUAL
                 OutlinedTextField(
                     value = horarioText,
-                    onValueChange = { newValue ->
-                        horarioText = formatarHorarioManual(newValue)
-                    },
+                    onValueChange = { horarioText = formatarHorarioManual(it) },
                     label = { Text("Horário (HH:MM)", color = GrayText) },
-                    placeholder = { Text("14:30") },
-                    leadingIcon = {
-                        Icon(Icons.Default.Schedule, "Horário", tint = RedPrimary)
-                    },
+                    placeholder = { Text("14:30", color = GrayText.copy(0.5f)) },
+                    leadingIcon = { Icon(Icons.Default.Schedule, "Horário", tint = Color(0xFFFB923C)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -525,9 +633,7 @@ private fun DialogEvento(
                     value = local,
                     onValueChange = { local = it },
                     label = { Text("Local", color = GrayText) },
-                    leadingIcon = {
-                        Icon(Icons.Default.LocationOn, "Local", tint = RedPrimary)
-                    },
+                    leadingIcon = { Icon(Icons.Default.LocationOn, "Local", tint = Color(0xFF10B981)) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = WhiteText,
@@ -555,20 +661,17 @@ private fun DialogEvento(
         confirmButton = {
             Button(
                 onClick = {
-                    val novoEvento = Evento(
+                    onSave(Evento(
                         id = evento?.id ?: "",
                         tipoEvento = tipoEvento,
                         dataEvento = dataText,
-                        horario = if (horarioText.isNotBlank()) horarioText else "Não informado",
+                        horario = horarioText.ifBlank { "Não informado" },
                         local = local,
                         descricao = descricao
-                    )
-                    onSave(novoEvento)
+                    ))
                 },
                 enabled = dataText.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = RedPrimary
-                )
+                colors = ButtonDefaults.buttonColors(containerColor = RedPrimary)
             ) {
                 Text("Salvar")
             }
@@ -581,31 +684,60 @@ private fun DialogEvento(
     )
 }
 
-// ✅ FUNÇÕES MANUAIS DE FORMATAÇÃO (melhoradas)
-private fun formatarDataManual(input: String): String {
-    val clean = input.filter { it.isDigit() }
-    if (clean.length > 8) return input
-
-    return buildString {
-        for (i in clean.indices) {
-            when (i) {
-                2, 4 -> append("/")
+@Composable
+private fun DialogConfirmarExclusao(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = DarkSurface,
+        title = { Text("Confirmar Exclusão", color = WhiteText, fontWeight = FontWeight.Bold) },
+        text = { Text("Tem certeza que deseja excluir este evento?", color = GrayText) },
+        confirmButton = {
+            Button(onClick = onConfirm, colors = ButtonDefaults.buttonColors(containerColor = RedSecondary)) {
+                Text("Excluir")
             }
-            append(clean[i])
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar", color = GrayText) }
         }
+    )
+}
+
+private fun formatarDataManual(input: String): String {
+    val digitos = input.filter { it.isDigit() }.take(8)
+    return when (digitos.length) {
+        0 -> ""
+        1, 2 -> digitos
+        3, 4 -> "${digitos.substring(0, 2)}/${digitos.substring(2)}"
+        else -> "${digitos.substring(0, 2)}/${digitos.substring(2, 4)}/${digitos.substring(4)}"
     }
 }
 
 private fun formatarHorarioManual(input: String): String {
-    val clean = input.filter { it.isDigit() }
-    if (clean.length > 4) return input
+    val digitos = input.filter { it.isDigit() }.take(4)
+    return when (digitos.length) {
+        0 -> ""
+        1, 2 -> digitos
+        else -> "${digitos.substring(0, 2)}:${digitos.substring(2)}"
+    }
+}
 
-    return buildString {
-        for (i in clean.indices) {
-            when (i) {
-                2 -> append(":")
-            }
-            append(clean[i])
-        }
+fun Evento.isEventoFuturo(): Boolean {
+    return try {
+        val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+        val eventoDateTime = dateFormat.parse("$dataEvento $horario")
+        eventoDateTime?.after(Date()) ?: false
+    } catch (e: Exception) {
+        false
+    }
+}
+
+fun Evento.getIconePorTipo(): String {
+    return when (tipoEvento) {
+        "Treino" -> "⚽"
+        "Jogo" -> "🥅"
+        "Reunião" -> "👥"
+        "Evento Social" -> "🎉"
+        "Amistoso" -> "🤝"
+        else -> "📅"
     }
 }
