@@ -1,24 +1,24 @@
+// app/src/main/java/com/example/escolafutebolapp/models/Treino.kt
 package com.example.escolafutebolapp.models
 
 data class Treino(
-    val id: String = "",
-    val titulo: String = "",
+    val treinoId: String = "",
+    val userId: String = "",
+    val nome: String = "",
     val descricao: String = "",
-    val duracao: Int = 60, // minutos
-    val intensidade: String = "", // leve, moderado, intenso
+    val data: String = "",
+    val hora: String = "",
+    val duracao: Int = 60,
+    val local: String = "",
     val exercicios: List<Exercicio> = emptyList(),
-    val criadoPor: String = "", // ID do professor
-    val dataCriacao: String = "",
-    val ativo: Boolean = true
-) {
-    constructor() : this("", "", "", 60, "", emptyList(), "", "", true)
-}
+    val dataCriacao: Long = System.currentTimeMillis(),
+    val id: String
+)
 
 data class Exercicio(
     val nome: String = "",
-    val repeticoes: String = "",
-    val descricao: String = "",
-    val duracao: Int = 0 // segundos
-) {
-    constructor() : this("", "", "", 0)
-}
+    val series: Int = 0,
+    val repeticoes: Int = 0,
+    val peso: String = "",
+    val descanso: Int = 0
+)

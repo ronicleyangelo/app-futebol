@@ -3,6 +3,7 @@ package com.example.escolafutebolapp.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,10 +31,12 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -41,23 +44,71 @@ import com.example.escolafutebolapp.R
 import com.example.escolafutebolapp.ui.theme.EscolaFutebolAppTheme
 
 @Composable
-fun WelcomeScreen(navController: NavController) {
+fun WelcomeScreen(navController: NavController, userName: String = "Jogador") {
+    // ✅ DETECTA O TAMANHO DA TELA
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val screenHeight = configuration.screenHeightDp.dp
+
+    // ✅ CALCULA VALORES RESPONSIVOS
+    val isSmallScreen = screenWidth < 360.dp
+    val isLargeScreen = screenWidth > 480.dp
+    val isTablet = screenWidth > 600.dp
+    val isLargeTablet = screenWidth > 800.dp
+
+    // ✅ TAMANHOS RESPONSIVOS
+    val horizontalPadding = when {
+        isLargeTablet -> 120.dp
+        isTablet -> 60.dp
+        isLargeScreen -> 32.dp
+        isSmallScreen -> 16.dp
+        else -> 24.dp
+    }
+
+    val verticalPadding = when {
+        isLargeTablet -> 60.dp
+        isTablet -> 40.dp
+        isSmallScreen -> 20.dp
+        else -> 28.dp
+    }
+
+    val spacingBetweenSections = when {
+        isLargeTablet -> 32.dp
+        isTablet -> 28.dp
+        isSmallScreen -> 20.dp
+        else -> 24.dp
+    }
+
     WelcomeContent(
+        userName = userName,
         onTreinosClick = { navController.navigate("treino") },
         onAgendaClick = { navController.navigate("agenda") },
         onSairClick = {
             navController.navigate("login") {
                 popUpTo("welcome") { inclusive = true }
             }
-        }
+        },
+        horizontalPadding = horizontalPadding,
+        verticalPadding = verticalPadding,
+        spacingBetweenSections = spacingBetweenSections,
+        isTablet = isTablet,
+        isSmallScreen = isSmallScreen,
+        isLargeTablet = isLargeTablet
     )
 }
 
 @Composable
 fun WelcomeContent(
+    userName: String,
     onTreinosClick: () -> Unit,
     onAgendaClick: () -> Unit,
-    onSairClick: () -> Unit
+    onSairClick: () -> Unit,
+    horizontalPadding: Dp,
+    verticalPadding: Dp,
+    spacingBetweenSections: Dp,
+    isTablet: Boolean,
+    isSmallScreen: Boolean,
+    isLargeTablet: Boolean
 ) {
     // Cores escuras personalizadas
     val darkBackground = Color(0xFF0D0D0D)
@@ -65,6 +116,28 @@ fun WelcomeContent(
     val white = Color(0xFFFFFFFF)
     val grayText = Color(0xFFB3B3B3)
     val mediumGray = Color(0xFF404040)
+
+    // ✅ TAMANHOS DE FONTE RESPONSIVOS
+    val fontSizeTitle = when {
+        isLargeTablet -> 32.sp
+        isTablet -> 28.sp
+        isSmallScreen -> 22.sp
+        else -> 26.sp
+    }
+
+    val fontSizeSubtitle = when {
+        isLargeTablet -> 20.sp
+        isTablet -> 18.sp
+        isSmallScreen -> 14.sp
+        else -> 16.sp
+    }
+
+    val fontSizeBody = when {
+        isLargeTablet -> 18.sp
+        isTablet -> 16.sp
+        isSmallScreen -> 14.sp
+        else -> 15.sp
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -85,30 +158,56 @@ fun WelcomeContent(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(32.dp),
+                    .fillMaxSize()
+                    .padding(horizontal = horizontalPadding, vertical = verticalPadding),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Top
             ) {
 
-                // CABEÇALHO COM LOGOUT
-                HeaderSectionWithLogout(onSairClick, mediumGray, darkSurface, white)
+                // ✅ LOGOUT NO TOPO DA TELA
+                TopLogoutSection(
+                    onSairClick = onSairClick,
+                    mediumGray = mediumGray,
+                    white = white,
+                    isTablet = isTablet,
+                    isSmallScreen = isSmallScreen,
+                    isLargeTablet = isLargeTablet
+                )
 
-                Spacer(Modifier.height(40.dp))
+                Spacer(Modifier.height(spacingBetweenSections))
 
-                // SAUDAÇÃO
-                GreetingSection(white, grayText)
+                // ✅ LOGO CENTRALIZADA
+                LogoSection(
+                    isTablet = isTablet,
+                    isSmallScreen = isSmallScreen,
+                    isLargeTablet = isLargeTablet
+                )
 
-                Spacer(Modifier.height(48.dp))
+                Spacer(Modifier.height(spacingBetweenSections))
 
-                // CARDS DE FUNCIONALIDADES
+                // ✅ SAUDAÇÃO RESPONSIVA
+                GreetingSection(
+                    userName = userName,
+                    white = white,
+                    grayText = grayText,
+                    fontSizeTitle = fontSizeTitle,
+                    fontSizeSubtitle = fontSizeSubtitle
+                )
+
+                Spacer(Modifier.height(spacingBetweenSections))
+
+                // ✅ CARDS DE FUNCIONALIDADES RESPONSIVOS
                 FeaturesGrid(
                     onTreinosClick = onTreinosClick,
                     onAgendaClick = onAgendaClick,
                     mediumGray = mediumGray,
                     white = white,
                     grayText = grayText,
-                    darkSurface = darkSurface
+                    darkSurface = darkSurface,
+                    isTablet = isTablet,
+                    isSmallScreen = isSmallScreen,
+                    isLargeTablet = isLargeTablet,
+                    fontSizeBody = fontSizeBody
                 )
             }
         }
@@ -116,93 +215,133 @@ fun WelcomeContent(
 }
 
 @Composable
-private fun HeaderSectionWithLogout(
+private fun TopLogoutSection(
     onSairClick: () -> Unit,
     mediumGray: Color,
-    darkSurface: Color,
-    white: Color
+    white: Color,
+    isTablet: Boolean,
+    isSmallScreen: Boolean,
+    isLargeTablet: Boolean
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
-        Box(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.Center),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Container da logo
-                Box(
-                    modifier = Modifier
-                        .size(140.dp)
-                        .shadow(
-                            elevation = 8.dp,
-                            shape = RoundedCornerShape(20.dp)
-                        )
-                        .background(Color.Transparent),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.logo_aa),
-                        contentDescription = "Logo Escola de Futebol",
-                        modifier = Modifier
-                            .size(120.dp)
-                            .padding(8.dp),
-                        contentScale = ContentScale.Fit
-                    )
-                }
-            }
+    // ✅ TAMANHOS RESPONSIVOS PARA O BOTÃO DE LOGOUT
+    val iconButtonSize = when {
+        isLargeTablet -> 52.dp
+        isTablet -> 48.dp
+        isSmallScreen -> 40.dp
+        else -> 44.dp
+    }
 
-            // Ícone de logout
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(mediumGray.copy(alpha = 0.3f))
+    val iconSize = when {
+        isLargeTablet -> 30.dp
+        isTablet -> 26.dp
+        isSmallScreen -> 22.dp
+        else -> 24.dp
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+    ) {
+        // ✅ BOTÃO DE LOGOUT ALINHADO À DIREITA NO TOPO
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(iconButtonSize)
+                .clip(RoundedCornerShape(if (isLargeTablet) 14.dp else 12.dp))
+                .background(mediumGray.copy(alpha = 0.3f))
+        ) {
+            IconButton(
+                onClick = onSairClick,
+                modifier = Modifier.size(iconButtonSize)
             ) {
-                IconButton(
-                    onClick = onSairClick,
-                    modifier = Modifier.size(44.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ExitToApp,
-                        contentDescription = "Sair",
-                        tint = white,
-                        modifier = Modifier.size(26.dp)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.ExitToApp,
+                    contentDescription = "Sair",
+                    tint = white,
+                    modifier = Modifier.size(iconSize)
+                )
             }
         }
-
-        Text(
-            "Olá, Amigo Bom de Bola!",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            lineHeight = 32.sp,
-            color = white
-        )
     }
 }
 
 @Composable
-private fun GreetingSection(white: Color, grayText: Color) {
+private fun LogoSection(
+    isTablet: Boolean,
+    isSmallScreen: Boolean,
+    isLargeTablet: Boolean
+) {
+    // ✅ TAMANHOS RESPONSIVOS PARA LOGO
+    val logoSize = when {
+        isLargeTablet -> 160.dp
+        isTablet -> 140.dp
+        isSmallScreen -> 100.dp
+        else -> 120.dp
+    }
+
+    val logoImageSize = when {
+        isLargeTablet -> 140.dp
+        isTablet -> 120.dp
+        isSmallScreen -> 80.dp
+        else -> 100.dp
+    }
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Container da logo responsivo
+        Box(
+            modifier = Modifier
+                .size(logoSize)
+                .shadow(
+                    elevation = if (isLargeTablet) 12.dp else 8.dp,
+                    shape = RoundedCornerShape(if (isLargeTablet) 24.dp else 20.dp)
+                )
+                .background(Color.Transparent),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.logo_aa),
+                contentDescription = "Logo Escola de Futebol",
+                modifier = Modifier
+                    .size(logoImageSize)
+                    .padding(if (isLargeTablet) 12.dp else 8.dp),
+                contentScale = ContentScale.Fit
+            )
+        }
+    }
+}
+
+@Composable
+private fun GreetingSection(
+    userName: String,
+    white: Color,
+    grayText: Color,
+    fontSizeTitle: androidx.compose.ui.unit.TextUnit,
+    fontSizeSubtitle: androidx.compose.ui.unit.TextUnit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            "Olá, $userName!",
+            fontSize = fontSizeTitle,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            lineHeight = fontSizeTitle * 1.1f,
+            color = white,
+            modifier = Modifier.fillMaxWidth()
+        )
+
         Text(
             "Bem-vindo à Escola de Futebol!",
             color = grayText,
-            fontSize = 18.sp,
+            fontSize = fontSizeSubtitle,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center,
-            lineHeight = 22.sp,
+            lineHeight = fontSizeSubtitle * 1.2f,
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -230,8 +369,48 @@ private fun FeaturesGrid(
     mediumGray: Color,
     white: Color,
     grayText: Color,
-    darkSurface: Color
+    darkSurface: Color,
+    isTablet: Boolean,
+    isSmallScreen: Boolean,
+    isLargeTablet: Boolean,
+    fontSizeBody: androidx.compose.ui.unit.TextUnit
 ) {
+    // ✅ TAMANHOS RESPONSIVOS PARA OS CARDS
+    val cardHeight = when {
+        isLargeTablet -> 220.dp
+        isTablet -> 200.dp
+        isSmallScreen -> 150.dp
+        else -> 180.dp
+    }
+
+    val cardSpacing = when {
+        isLargeTablet -> 32.dp
+        isTablet -> 24.dp
+        isSmallScreen -> 16.dp
+        else -> 20.dp
+    }
+
+    val cardPadding = when {
+        isLargeTablet -> 24.dp
+        isTablet -> 20.dp
+        isSmallScreen -> 16.dp
+        else -> 18.dp
+    }
+
+    val iconBoxSize = when {
+        isLargeTablet -> 100.dp
+        isTablet -> 90.dp
+        isSmallScreen -> 70.dp
+        else -> 80.dp
+    }
+
+    val iconSize = when {
+        isLargeTablet -> 42.dp
+        isTablet -> 38.dp
+        isSmallScreen -> 30.dp
+        else -> 36.dp
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -240,39 +419,92 @@ private fun FeaturesGrid(
         Text(
             "O que você gostaria de fazer?",
             color = grayText,
-            fontSize = 16.sp,
+            fontSize = fontSizeBody,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center
         )
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(180.dp),
-            horizontalArrangement = Arrangement.spacedBy(20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            FeatureCard(
-                "Treinos",
-                R.drawable.registrar,
-                onTreinosClick,
-                mediumGray,
-                white,
-                grayText,
-                darkSurface,
-                Modifier.weight(1f)
-            )
+        // ✅ LAYOUT RESPONSIVO - Row para telas maiores, Column para telas pequenas
+        if (isSmallScreen) {
+            // ✅ LAYOUT VERTICAL PARA TELAS PEQUENAS
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(cardSpacing),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                FeatureCard(
+                    title = "Treinos",
+                    iconRes = R.drawable.registrar,
+                    onClick = onTreinosClick,
+                    mediumGray = mediumGray,
+                    white = white,
+                    grayText = grayText,
+                    darkSurface = darkSurface,
+                    cardHeight = cardHeight,
+                    cardPadding = cardPadding,
+                    iconBoxSize = iconBoxSize,
+                    iconSize = iconSize,
+                    fontSizeBody = fontSizeBody,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-            FeatureCard(
-                "Agenda",
-                R.drawable.agenda,
-                onAgendaClick,
-                mediumGray,
-                white,
-                grayText,
-                darkSurface,
-                Modifier.weight(1f)
-            )
+                FeatureCard(
+                    title = "Agenda",
+                    iconRes = R.drawable.agenda,
+                    onClick = onAgendaClick,
+                    mediumGray = mediumGray,
+                    white = white,
+                    grayText = grayText,
+                    darkSurface = darkSurface,
+                    cardHeight = cardHeight,
+                    cardPadding = cardPadding,
+                    iconBoxSize = iconBoxSize,
+                    iconSize = iconSize,
+                    fontSizeBody = fontSizeBody,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        } else {
+            // ✅ LAYOUT HORIZONTAL PARA TELAS MÉDIAS E GRANDES
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(cardHeight),
+                horizontalArrangement = Arrangement.spacedBy(cardSpacing),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                FeatureCard(
+                    title = "Treinos",
+                    iconRes = R.drawable.registrar,
+                    onClick = onTreinosClick,
+                    mediumGray = mediumGray,
+                    white = white,
+                    grayText = grayText,
+                    darkSurface = darkSurface,
+                    cardHeight = cardHeight,
+                    cardPadding = cardPadding,
+                    iconBoxSize = iconBoxSize,
+                    iconSize = iconSize,
+                    fontSizeBody = fontSizeBody,
+                    modifier = Modifier.weight(1f)
+                )
+
+                FeatureCard(
+                    title = "Agenda",
+                    iconRes = R.drawable.agenda,
+                    onClick = onAgendaClick,
+                    mediumGray = mediumGray,
+                    white = white,
+                    grayText = grayText,
+                    darkSurface = darkSurface,
+                    cardHeight = cardHeight,
+                    cardPadding = cardPadding,
+                    iconBoxSize = iconBoxSize,
+                    iconSize = iconSize,
+                    fontSizeBody = fontSizeBody,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }
@@ -286,39 +518,44 @@ private fun FeatureCard(
     white: Color,
     grayText: Color,
     darkSurface: Color,
+    cardHeight: Dp,
+    cardPadding: Dp,
+    iconBoxSize: Dp,
+    iconSize: Dp,
+    fontSizeBody: androidx.compose.ui.unit.TextUnit,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier
-            .height(180.dp)
+            .height(cardHeight)
             .shadow(
-                elevation = 12.dp,
-                shape = RoundedCornerShape(20.dp)
-            ),
+                elevation = if (cardHeight > 180.dp) 16.dp else 12.dp,
+                shape = RoundedCornerShape(if (cardHeight > 180.dp) 24.dp else 20.dp)
+            )
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = darkSurface),
-        shape = RoundedCornerShape(20.dp),
-        onClick = onClick
+        shape = RoundedCornerShape(if (cardHeight > 180.dp) 24.dp else 20.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(20.dp),
+                .padding(cardPadding),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Box(
                 modifier = Modifier
-                    .size(80.dp)
+                    .size(iconBoxSize)
                     .background(
                         color = mediumGray.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(if (iconBoxSize > 80.dp) 20.dp else 16.dp)
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
                     painter = painterResource(iconRes),
                     contentDescription = "Ícone $title",
-                    modifier = Modifier.size(36.dp),
+                    modifier = Modifier.size(iconSize),
                     contentScale = ContentScale.Fit
                 )
             }
@@ -328,7 +565,7 @@ private fun FeatureCard(
             Text(
                 title,
                 color = white,
-                fontSize = 18.sp,
+                fontSize = fontSizeBody,
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center
             )
@@ -336,18 +573,73 @@ private fun FeatureCard(
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = true, device = "spec:width=411dp,height=891dp")
 @Composable
-fun WelcomeScreenPreview() {
+fun WelcomeScreenMobilePreview() {
     EscolaFutebolAppTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color(0xFF0D0D0D)
         ) {
             WelcomeContent(
+                userName = "Carlos Silva",
                 onTreinosClick = {},
                 onAgendaClick = {},
-                onSairClick = {}
+                onSairClick = {},
+                horizontalPadding = 24.dp,
+                verticalPadding = 28.dp,
+                spacingBetweenSections = 24.dp,
+                isTablet = false,
+                isSmallScreen = false,
+                isLargeTablet = false
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true, device = "spec:width=360dp,height=800dp")
+@Composable
+fun WelcomeScreenSmallPreview() {
+    EscolaFutebolAppTheme {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color(0xFF0D0D0D)
+        ) {
+            WelcomeContent(
+                userName = "Maria Santos",
+                onTreinosClick = {},
+                onAgendaClick = {},
+                onSairClick = {},
+                horizontalPadding = 16.dp,
+                verticalPadding = 20.dp,
+                spacingBetweenSections = 20.dp,
+                isTablet = false,
+                isSmallScreen = true,
+                isLargeTablet = false
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true, device = "spec:width=1280dp,height=800dp")
+@Composable
+fun WelcomeScreenTabletPreview() {
+    EscolaFutebolAppTheme {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color(0xFF0D0D0D)
+        ) {
+            WelcomeContent(
+                userName = "João Silva",
+                onTreinosClick = {},
+                onAgendaClick = {},
+                onSairClick = {},
+                horizontalPadding = 60.dp,
+                verticalPadding = 40.dp,
+                spacingBetweenSections = 28.dp,
+                isTablet = true,
+                isSmallScreen = false,
+                isLargeTablet = false
             )
         }
     }

@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "363110106537",
+    "firebase_url": "https://escola-de-futebol-jaca-default-rtdb.firebaseio.com",
+    "project_id": "escola-de-futebol-jaca",
+    "storage_bucket": "escola-de-futebol-jaca.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:363110106537:android:2a0c310a3495dc4ae2b0b8",
+        "android_client_info": {
+          "package_name": "com.example.escolafutebolapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJkEeVLT5GBYk6uc39LskX4Yv9_WtuDfs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
