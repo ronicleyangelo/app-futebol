@@ -1,4 +1,3 @@
-// app/src/main/java/com/example/escolafutebolapp/ui/screens/WelcomeScreen.kt
 package com.example.escolafutebolapp.ui.screens
 
 import androidx.compose.foundation.Image
@@ -24,6 +23,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,13 +47,52 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.escolafutebolapp.R
 import com.example.escolafutebolapp.ui.theme.EscolaFutebolAppTheme
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun WelcomeScreen(navController: NavController, userName: String = "Jogador") {
+    // ✅ Decodifica o nome do usuário
+    val decodedUserName = try {
+        java.net.URLDecoder.decode(userName, "UTF-8")
+    } catch (e: Exception) {
+        userName
+    }
+
+    // ✅ Obtém o userId do usuário logado
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val userId = currentUser?.uid ?: ""
+
+    // ✅ STATE PARA ARMAZENAR O TIPO DO USUÁRIO
+    var userTipo by remember { mutableStateOf("aluno") }
+
+    // ✅ BUSCA O TIPO DO USUÁRIO DO FIREBASE
+    LaunchedEffect(userId) {
+        if (userId.isNotEmpty()) {
+            try {
+                val database = Firebase.database("https://escola-de-futebol-jaca-default-rtdb.firebaseio.com/")
+                val userRef = database.getReference("users/$userId/tipo_usuario")
+
+                userRef.get().addOnSuccessListener { snapshot ->
+                    userTipo = snapshot.getValue(String::class.java) ?: "aluno"
+                    println("✅ Tipo de usuário obtido: $userTipo")
+                }.addOnFailureListener {
+                    println("❌ Erro ao obter tipo de usuário: ${it.message}")
+                    userTipo = "aluno" // Fallback
+                }
+            } catch (e: Exception) {
+                println("❌ Exceção ao obter tipo de usuário: ${e.message}")
+                userTipo = "aluno" // Fallback
+            }
+        }
+    }
+
     // ✅ DETECTA O TAMANHO DA TELA
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
-    val screenHeight = configuration.screenHeightDp.dp
 
     // ✅ CALCULA VALORES RESPONSIVOS
     val isSmallScreen = screenWidth < 360.dp
@@ -79,13 +123,41 @@ fun WelcomeScreen(navController: NavController, userName: String = "Jogador") {
         else -> 24.dp
     }
 
+    // ✅ Coroutine scope para logout
+    val scope = rememberCoroutineScope()
+
     WelcomeContent(
-        userName = userName,
+        userName = decodedUserName,
         onTreinosClick = { navController.navigate("treino") },
-        onAgendaClick = { navController.navigate("agenda") },
+        // ✅ CORREÇÃO: Passe o userId E userTipo na navegação
+        onAgendaClick = {
+            if (userId.isNotEmpty()) {
+                navController.navigate("agenda/$userId/$userTipo")
+                println("📍 Navegando para: agenda/$userId/$userTipo")
+            } else {
+                println("❌ Erro: userId não encontrado")
+                // Fallback: navega para login se não tiver userId
+                navController.navigate("login") {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+        },
         onSairClick = {
-            navController.navigate("login") {
-                popUpTo("welcome") { inclusive = true }
+            scope.launch {
+                try {
+                    // ✅ DESLOGA DO FIREBASE AUTH
+                    println("🔓 Fazendo logout do Firebase Auth...")
+                    FirebaseAuth.getInstance().signOut()
+                    println("✅ Logout realizado com sucesso!")
+
+                    // ✅ NAVEGA PARA LOGIN E LIMPA O BACK STACK
+                    navController.navigate("login") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                } catch (e: Exception) {
+                    println("❌ Erro ao fazer logout: ${e.message}")
+                    e.printStackTrace()
+                }
             }
         },
         horizontalPadding = horizontalPadding,
@@ -223,7 +295,6 @@ private fun TopLogoutSection(
     isSmallScreen: Boolean,
     isLargeTablet: Boolean
 ) {
-    // ✅ TAMANHOS RESPONSIVOS PARA O BOTÃO DE LOGOUT
     val iconButtonSize = when {
         isLargeTablet -> 52.dp
         isTablet -> 48.dp
@@ -239,10 +310,8 @@ private fun TopLogoutSection(
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = Modifier.fillMaxWidth()
     ) {
-        // ✅ BOTÃO DE LOGOUT ALINHADO À DIREITA NO TOPO
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -271,7 +340,6 @@ private fun LogoSection(
     isSmallScreen: Boolean,
     isLargeTablet: Boolean
 ) {
-    // ✅ TAMANHOS RESPONSIVOS PARA LOGO
     val logoSize = when {
         isLargeTablet -> 160.dp
         isTablet -> 140.dp
@@ -290,7 +358,6 @@ private fun LogoSection(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Container da logo responsivo
         Box(
             modifier = Modifier
                 .size(logoSize)
@@ -362,6 +429,7 @@ private fun GreetingSection(
     }
 }
 
+
 @Composable
 private fun FeaturesGrid(
     onTreinosClick: () -> Unit,
@@ -375,7 +443,6 @@ private fun FeaturesGrid(
     isLargeTablet: Boolean,
     fontSizeBody: androidx.compose.ui.unit.TextUnit
 ) {
-    // ✅ TAMANHOS RESPONSIVOS PARA OS CARDS
     val cardHeight = when {
         isLargeTablet -> 220.dp
         isTablet -> 200.dp
@@ -424,14 +491,15 @@ private fun FeaturesGrid(
             textAlign = TextAlign.Center
         )
 
-        // ✅ LAYOUT RESPONSIVO - Row para telas maiores, Column para telas pequenas
         if (isSmallScreen) {
-            // ✅ LAYOUT VERTICAL PARA TELAS PEQUENAS
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(cardSpacing),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // ✅ REMOVIDO: Logo duplicado aqui
+                // O logo já está sendo exibido na LogoSection acima
+
                 FeatureCard(
                     title = "Treinos",
                     iconRes = R.drawable.registrar,
@@ -465,7 +533,6 @@ private fun FeaturesGrid(
                 )
             }
         } else {
-            // ✅ LAYOUT HORIZONTAL PARA TELAS MÉDIAS E GRANDES
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -533,7 +600,7 @@ private fun FeatureCard(
                 shape = RoundedCornerShape(if (cardHeight > 180.dp) 24.dp else 20.dp)
             )
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = darkSurface),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF282828)),
         shape = RoundedCornerShape(if (cardHeight > 180.dp) 24.dp else 20.dp)
     ) {
         Column(
@@ -547,16 +614,16 @@ private fun FeatureCard(
                 modifier = Modifier
                     .size(iconBoxSize)
                     .background(
-                        color = mediumGray.copy(alpha = 0.2f),
+                        color = Color(0xFF282828),
                         shape = RoundedCornerShape(if (iconBoxSize > 80.dp) 20.dp else 16.dp)
                     ),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center // ✅ Já está centralizando
             ) {
                 Image(
                     painter = painterResource(iconRes),
                     contentDescription = "Ícone $title",
-                    modifier = Modifier.size(iconSize),
-                    contentScale = ContentScale.Fit
+                    modifier = Modifier.fillMaxSize(0.85f), // ✅ Reduz para 85% com padding interno
+                    contentScale = ContentScale.Fit // ✅ Mantém proporção sem cortar
                 )
             }
 

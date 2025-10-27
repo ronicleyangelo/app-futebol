@@ -9,6 +9,7 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.database
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
@@ -19,6 +20,112 @@ object RealtimeDBService {
 
     private val database = FirebaseDatabase.getInstance()
     private val usersRef = database.getReference("users")
+
+    /**
+     * ✅ FUNÇÃO NOVA: Busca o usuário atual logado no Firebase Auth
+     */
+    suspend fun getCurrentUser(): User? {
+        return try {
+            val firebaseUser = Firebase.auth.currentUser
+            if (firebaseUser != null) {
+                println("🔍 Buscando usuário atual no Realtime Database: ${firebaseUser.uid}")
+                val user = getUser(firebaseUser.uid)
+                if (user != null) {
+                    println("✅ Usuário atual encontrado: ${user.nome} (${user.tipo_usuario})")
+                } else {
+                    println("⚠️ Usuário do Auth não encontrado no Realtime Database")
+                }
+                user
+            } else {
+                println("ℹ️ Nenhum usuário logado no Firebase Auth")
+                null
+            }
+        } catch (e: Exception) {
+            println("❌ Erro ao buscar usuário atual: ${e.message}")
+            e.printStackTrace()
+            null
+        }
+    }
+
+    /**
+     * Método para verificar admin específico por email
+     */
+    suspend fun checkAdminExists(email: String): Boolean {
+        return try {
+            val admin = getUserByEmail(email)
+            val exists = admin != null
+            println("🔍 Verificando admin $email: ${if (exists) "EXISTE" else "NÃO EXISTE"}")
+            exists
+        } catch (e: Exception) {
+            println("❌ Erro ao verificar admin $email: ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * ✅ FUNÇÃO NOVA: Busca o usuário atual com listener em tempo real
+     */
+    fun getCurrentUserRealtime(onUserChanged: (User?) -> Unit) {
+        val firebaseUser = Firebase.auth.currentUser
+        if (firebaseUser != null) {
+            usersRef.child(firebaseUser.uid)
+                .addValueEventListener(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        try {
+                            val user = snapshot.getValue(User::class.java)
+                            if (user != null) {
+                                println("🔄 Usuário atualizado em tempo real: ${user.nome}")
+                            }
+                            onUserChanged(user)
+                        } catch (e: Exception) {
+                            println("❌ Erro ao processar usuário em tempo real: ${e.message}")
+                            onUserChanged(null)
+                        }
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                        println("❌ Listener de usuário cancelado: ${error.message}")
+                        onUserChanged(null)
+                    }
+                })
+        } else {
+            onUserChanged(null)
+        }
+    }
+
+    /**
+     * ✅ FUNÇÃO NOVA: Verifica se o usuário atual tem permissão de admin/tecnico
+     */
+    suspend fun currentUserCanEdit(): Boolean {
+        return try {
+            val currentUser = getCurrentUser()
+            val canEdit = currentUser?.tipo_usuario == "admin" || currentUser?.tipo_usuario == "tecnico"
+            println("🔐 Permissão de edição: ${if (canEdit) "PERMITIDO" else "NEGADO"} para ${currentUser?.nome}")
+            canEdit
+        } catch (e: Exception) {
+            println("❌ Erro ao verificar permissões: ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * ✅ FUNÇÃO NOVA: Atualiza dados do usuário atual
+     */
+    suspend fun updateCurrentUser(updates: Map<String, Any>): Boolean {
+        return try {
+            val firebaseUser = Firebase.auth.currentUser
+            if (firebaseUser != null) {
+                updateUser(firebaseUser.uid, updates)
+                true
+            } else {
+                println("⚠️ Nenhum usuário logado para atualizar")
+                false
+            }
+        } catch (e: Exception) {
+            println("❌ Erro ao atualizar usuário atual: ${e.message}")
+            false
+        }
+    }
 
     /**
      * Salva ou atualiza um usuário no Realtime Database
@@ -204,42 +311,66 @@ object RealtimeDBService {
             })
     }
 
-    // No seu RealtimeDBService, adicione este método:
+    /**
+     * Busca usuário pelo username (versão corrigida)
+     */
     suspend fun getUserByUsername(username: String): User? {
-        return withContext(Dispatchers.IO) {
-            try {
-                val database = Firebase.database.reference
-                val snapshot = database.child("users")
-                    .orderByChild("nome")
-                    .equalTo(username)
-                    .get()
-                    .await()
+        return try {
+            println("🔍 Buscando usuário por username: '$username'")
 
-                if (snapshot.exists()) {
-                    for (child in snapshot.children) {
-                        return@withContext child.getValue(User::class.java)
-                    }
-                }
-                null
-            } catch (e: Exception) {
-                println("Erro ao buscar usuário por username: ${e.message}")
-                null
+            val database = Firebase.database.reference
+            val usersRef = database.child("users")
+
+            val dataSnapshot = withContext(Dispatchers.IO) {
+                usersRef.get().await()
             }
+
+            println("📊 Total de usuários no banco: ${dataSnapshot.children.count()}")
+
+            var userFound: User? = null
+            dataSnapshot.children.forEach { snapshot ->
+                try {
+                    val user = snapshot.getValue(User::class.java)
+                    if (user != null) {
+                        println("👤 Verificando usuário: username='${user.username}' == '$username'")
+                        if (user.username?.equals(username, ignoreCase = true) == true) {
+                            userFound = user
+                            println("✅ Usuário encontrado: ${user.nome} (${user.email})")
+                            return@forEach
+                        }
+                    }
+                } catch (e: Exception) {
+                    println("⚠️ Erro ao processar usuário: ${e.message}")
+                }
+            }
+
+            if (userFound == null) {
+                println("❌ Nenhum usuário encontrado com username: '$username'")
+            }
+
+            userFound
+        } catch (e: Exception) {
+            println("❌ Erro ao buscar usuário por username '$username': ${e.message}")
+            e.printStackTrace()
+            null
         }
     }
 
+    // No RealtimeDBService, atualize o método createDefaultAdminIfNotExists:
 
-    // No RealtimeDBService, adicione este método:
     /**
      * Cria um usuário admin padrão se não existir
      */
     suspend fun createDefaultAdminIfNotExists() {
         try {
             val adminEmail = "admin@escolafutebol.com"
-            val adminPassword = "Admin123@" // Senha padrão forte
+
+            // ✅ PRIMEIRO VERIFICA SE JÁ EXISTE NO BANCO
             val existingAdmin = getUserByEmail(adminEmail)
 
             if (existingAdmin == null) {
+                println("🔍 Admin não encontrado no banco. Criando novo admin...")
+
                 // Cria o usuário admin padrão
                 val adminUser = User(
                     uid = "default_admin_uid", // UID fixo para o admin padrão
@@ -248,7 +379,7 @@ object RealtimeDBService {
                     username = "admin",
                     tipo_usuario = "admin",
                     data_criacao = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(java.util.Date()),
-                    senha_provisoria = false, // ✅ AGORA É FALSE - SENHA DEFINIDA
+                    senha_provisoria = false,
                     ativo = true
                 )
 
@@ -257,33 +388,50 @@ object RealtimeDBService {
                 println("✅ Usuário admin padrão criado com sucesso!")
                 println("📧 Email: $adminEmail")
                 println("👤 Username: admin")
-                println("🔑 Senha: $adminPassword")
                 println("🔓 Senha provisória: false")
 
-                // ✅ AGORA TAMBÉM CRIA NO FIREBASE AUTHENTICATION
-                createAdminInFirebaseAuth(adminEmail, adminPassword)
+                // ✅ TENTA CRIAR NO FIREBASE AUTH (se não existir)
+                createAdminInFirebaseAuth(adminEmail, "Admin123@")
 
             } else {
-                println("✅ Usuário admin já existe no banco")
+                println("✅ Usuário admin já existe no banco. Nada a fazer.")
+                println("📧 Email: ${existingAdmin.email}")
+                println("👤 Nome: ${existingAdmin.nome}")
+                println("🔑 Tipo: ${existingAdmin.tipo_usuario}")
             }
         } catch (e: Exception) {
-            println("❌ Erro ao criar usuário admin padrão: ${e.message}")
+            println("❌ Erro ao verificar/criar usuário admin padrão: ${e.message}")
+            e.printStackTrace()
         }
     }
 
     private suspend fun createAdminInFirebaseAuth(email: String, password: String) {
         try {
-            // Importe o Firebase Auth no topo do arquivo
-            // import com.google.firebase.auth.FirebaseAuth
-            // import com.google.firebase.auth.ktx.auth
-            // import com.google.firebase.ktx.Firebase
-
             val auth = Firebase.auth
 
-            // Verifica se já existe no Auth
-            val result = auth.createUserWithEmailAndPassword(email, password).await()
-
-            println("✅ Admin criado no Firebase Authentication: ${result.user?.uid}")
+            // ✅ PRIMEIRO TENTA LOGIN PARA VER SE JÁ EXISTE
+            try {
+                val result = auth.signInWithEmailAndPassword(email, password).await()
+                println("ℹ️ Admin já existe no Firebase Authentication: ${result.user?.uid}")
+                return // Já existe, não precisa criar
+            } catch (signInException: Exception) {
+                // Se falhou no login, tenta criar
+                when {
+                    signInException.message?.contains("invalid credential") == true -> {
+                        println("🔍 Admin não existe no Auth. Criando...")
+                        val createResult = auth.createUserWithEmailAndPassword(email, password).await()
+                        println("✅ Admin criado no Firebase Authentication: ${createResult.user?.uid}")
+                    }
+                    signInException.message?.contains("user not found") == true -> {
+                        println("🔍 Admin não existe no Auth. Criando...")
+                        val createResult = auth.createUserWithEmailAndPassword(email, password).await()
+                        println("✅ Admin criado no Firebase Authentication: ${createResult.user?.uid}")
+                    }
+                    else -> {
+                        println("⚠️ Erro ao verificar admin no Auth: ${signInException.message}")
+                    }
+                }
+            }
         } catch (e: Exception) {
             when {
                 e.message?.contains("already exists") == true -> {
@@ -298,18 +446,19 @@ object RealtimeDBService {
             }
         }
     }
+
     /**
-     * Verifica se existe pelo menos um usuário admin no sistema
+     * Método adicional para verificar se existe algum admin no sistema
      */
     suspend fun hasAnyAdmin(): Boolean {
         return try {
             val admins = getUsersByType("admin")
+            println("🔍 Verificando admins no sistema: ${admins.size} encontrados")
             admins.isNotEmpty()
         } catch (e: Exception) {
             println("❌ Erro ao verificar admins: ${e.message}")
             false
         }
     }
-
 
 }

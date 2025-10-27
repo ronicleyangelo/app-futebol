@@ -64,7 +64,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.draw.clip
 import com.example.escolafutebolapp.viewmodels.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -380,46 +382,39 @@ private fun LogoSection(
         Box(
             modifier = Modifier
                 .size(logoSize)
-                .shadow(
-                    elevation = 12.dp, // Aumentado
-                    shape = RoundedCornerShape(20.dp), // Aumentado
-                    clip = false
-                )
+                .shadow(elevation = 12.dp, shape = RoundedCornerShape(20.dp))
                 .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(darkSurface, grayDark)
-                    ),
-                    shape = RoundedCornerShape(20.dp) // Aumentado
+                    brush = Brush.verticalGradient(colors = listOf(darkSurface, grayDark)),
+                    shape = RoundedCornerShape(20.dp)
                 )
-                .padding(logoSize * 0.18f), // Padding aumentado
+                .clip(RoundedCornerShape(16.dp)), // Clip interno
             contentAlignment = Alignment.Center
         ) {
             Image(
                 painter = painterResource(id = R.drawable.logo_aa),
                 contentDescription = "Logo Escola de Futebol",
-                modifier = Modifier.size(logoSize * 0.55f), // Tamanho aumentado
-                contentScale = ContentScale.Fit
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop // Crop pode ser melhor para logos
             )
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+//            Text(
+//                text = "Bem-vindo de Volta!",
+//                color = white,
+//                fontSize = fontSizeTitle,
+//                fontWeight = FontWeight.Bold,
+//                textAlign = TextAlign.Center
+//            )
             Text(
-                text = "Bem-vindo de Volta!",
-                color = white,
-                fontSize = fontSizeTitle,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = "Entre na sua conta para continuar",
+                text = "Entre no seu perfil de atleta",
                 color = grayText,
-                fontSize = fontSizeTitle * 0.75f, // Tamanho aumentado
+                fontSize = fontSizeTitle * 0.75f,
                 textAlign = TextAlign.Center
             )
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LoginForm(
@@ -470,7 +465,7 @@ private fun LoginForm(
             // Campo Email
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) { // Aumentado
                 Text(
-                    text = "Email",
+                    text = "Usuário ou E-mail",
                     color = white,
                     fontSize = fontSizeBody,
                     fontWeight = FontWeight.Medium
@@ -480,7 +475,7 @@ private fun LoginForm(
                     onValueChange = onEmailChange,
                     placeholder = {
                         Text(
-                            "seu.email@exemplo.com",
+                            "digite seu usuário ou e-mail",
                             color = grayText.copy(alpha = 0.6f),
                             fontSize = fontSizeBody
                         )
@@ -527,7 +522,7 @@ private fun LoginForm(
                     onValueChange = onPasswordChange,
                     placeholder = {
                         Text(
-                            "Sua senha",
+                            "Digite sua senha",
                             color = grayText.copy(alpha = 0.6f),
                             fontSize = fontSizeBody
                         )
@@ -643,7 +638,7 @@ private fun LoginForm(
                     )
                 } else {
                     Text(
-                        text = "Entrar na Conta",
+                        text = "Acessar Conta",
                         fontSize = fontSizeBody,
                         fontWeight = FontWeight.Bold
                     )
@@ -714,7 +709,7 @@ private fun LoginForm(
                 border = BorderStroke(2.dp, accentRed) // Aumentado
             ) {
                 Text(
-                    text = "Criar Conta Agora",
+                    text = "Entrar para o Time",
                     fontSize = fontSizeBody,
                     fontWeight = FontWeight.Bold
                 )

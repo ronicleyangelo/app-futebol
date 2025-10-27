@@ -37,7 +37,7 @@ class AuthViewModel : ViewModel() {
      */
     fun loginUser(emailOrUsername: String, password: String) {
         if (emailOrUsername.isBlank()) {
-            _authState.value = AuthState.Error("Email ou nome não pode estar vazio")
+            _authState.value = AuthState.Error("Email ou nome de usuário não pode estar vazio")
             return
         }
 
@@ -49,54 +49,61 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
-                // Verifica se é um email válido
                 val email = if (isValidEmail(emailOrUsername)) {
+                    // Se for um email válido, usa diretamente
                     emailOrUsername
                 } else {
-                    // Se não for email, busca o email pelo nome
-                    val emailFromName = getEmailFromName(emailOrUsername)
-                    if (emailFromName == null) {
+                    // Se não for email, busca o email pelo username
+                    val emailFromUsername = getEmailFromUsername(emailOrUsername)
+                    if (emailFromUsername == null) {
                         _authState.value = AuthState.Error("Usuário não encontrado")
                         return@launch
                     }
-                    emailFromName
+                    emailFromUsername
                 }
 
-                // Faz login com o email
+                // Faz login com o email encontrado
                 val result = withContext(Dispatchers.IO) {
                     auth.signInWithEmailAndPassword(email, password).await()
                 }
 
                 val firebaseUser = result.user ?: throw Exception("Usuário não retornado pelo Firebase")
 
-                // Processar usuário em background
+                // Atualiza o usuário no Realtime DB se necessário
                 handleUserRegistration(firebaseUser)
 
                 _authState.value = AuthState.Success(firebaseUser)
 
             } catch (e: Exception) {
                 val errorMessage = when (e) {
-                    is FirebaseAuthInvalidCredentialsException -> "Email ou senha incorretos"
+                    is FirebaseAuthInvalidCredentialsException -> "Email/senha incorretos"
                     is FirebaseAuthInvalidUserException -> "Usuário não encontrado"
                     is FirebaseAuthWeakPasswordException -> "Senha muito fraca"
-                    else -> e.message ?: "Erro desconhecido no login"
+                    else -> "Erro no login: ${e.message}"
                 }
                 _authState.value = AuthState.Error(errorMessage)
             }
         }
     }
-
     /**
-     * Busca o email de um usuário pelo seu nome no Realtime Database
-     * @param nome nome do usuário
-     * @return email do usuário ou null se não encontrado
+     * Busca o email de um usuário pelo username no Realtime Database
      */
-    private suspend fun getEmailFromName(nome: String): String? {
+    private suspend fun getEmailFromUsername(username: String): String? {
         return withContext(Dispatchers.IO) {
             try {
-                RealtimeDBService.getUserByName(nome)?.email
+                println("🔍 Buscando email pelo username: '$username'")
+
+                val user = RealtimeDBService.getUserByUsername(username)
+
+                if (user != null) {
+                    println("✅ Email encontrado para username '$username': ${user.email}")
+                    user.email
+                } else {
+                    println("❌ Nenhum usuário encontrado com username: '$username'")
+                    null
+                }
             } catch (e: Exception) {
-                println("⚠️ Erro ao buscar email pelo nome: ${e.message}")
+                println("⚠️ Erro ao buscar email pelo username '$username': ${e.message}")
                 null
             }
         }
@@ -326,4 +333,5 @@ class AuthViewModel : ViewModel() {
             RealtimeDBService.getUser(currentUser.uid)
         }
     }
+
 }

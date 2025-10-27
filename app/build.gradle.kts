@@ -47,12 +47,22 @@ android {
         kotlinCompilerExtensionVersion = "1.5.8"
     }
 
+    // ADICIONE ESTA CONFIGURAÇÃO PARA RESOLVER O ERRO DO JAVAMAIL
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += setOf(
+                "META-INF/NOTICE.md",
+                "META-INF/LICENSE.md",
+                "META-INF/DEPENDENCIES",
+                "META-INF/INDEX.LIST",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE.txt"
+            )
+            merges += setOf("META-INF/LICENSE")
         }
     }
 }
+
 dependencies {
     // Core AndroidX
     implementation(libs.androidx.core.ktx)
@@ -83,10 +93,19 @@ dependencies {
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-database-ktx")
+    implementation(libs.androidx.constraintlayout)
+    implementation(libs.material)
 
-    // ❌ REMOVA estas linhas temporariamente:
-    // implementation("io.github.vanpra.compose-material-dialogs:datetime:0.8.1-rc")
-    // implementation("com.github.Tlaster:compose-mask:0.2.1")
+    // JavaMail para envio de emails
+    implementation("com.sun.mail:android-mail:1.6.7")
+    implementation("com.sun.mail:android-activation:1.6.7")
+
+    // Material Design
+    implementation("com.google.android.material:material:1.10.0")
+
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
     // Test
     testImplementation(libs.junit)

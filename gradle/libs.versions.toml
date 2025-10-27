@@ -9,6 +9,8 @@ lifecycleRuntimeKtx = "2.7.0"
 activityCompose = "1.8.2"
 composeBom = "2023.10.01"
 firebaseDatabaseKtx = "22.0.1"
+constraintlayout = "2.2.1"
+material = "1.13.0"
 # ❌ REMOVA qualquer linha com 'hilt' aqui
 
 [libraries]
@@ -27,6 +29,8 @@ androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 firebase-database-ktx = { group = "com.google.firebase", name = "firebase-database-ktx", version.ref = "firebaseDatabaseKtx" }
+androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 # ❌ REMOVA qualquer linha com 'hilt' aqui
 
 [plugins]
