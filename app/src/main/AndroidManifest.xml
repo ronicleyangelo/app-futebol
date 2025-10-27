@@ -5,7 +5,7 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/logo_aa"
         android:label="@string/app_name"
         android:roundIcon="@drawable/edit_text_background"
         android:supportsRtl="true"
